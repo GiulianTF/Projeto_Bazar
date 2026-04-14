@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/models/comanda_status.dart';
+import '../../../../shared/models/item_model.dart';
+import '../../../../shared/models/pagamento_model.dart';
 import '../viewmodels/comanda_detail_viewmodel.dart';
 import '../widgets/add_item_dialog.dart';
+import '../widgets/add_pagamento_dialog.dart';
 import 'package:intl/intl.dart';
 
 class ComandaDetailView extends StatefulWidget {
@@ -44,13 +47,25 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
     );
   }
 
-  void _checkout() {
+  void _showAddPagamentoDialog(double saldo) {
+    showDialog(
+      context: context,
+      builder: (context) => AddPagamentoDialog(
+        saldoDevedor: saldo,
+        onAdd: (valor) {
+          widget.viewModel.addPagamento(valor);
+        },
+      ),
+    );
+  }
+
+  void _encerrar() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundDark,
-        title: const Text('Confirmar Pagamento', style: TextStyle(color: AppColors.textPrimaryLight)),
-        content: Text('Deseja finalizar o pagamento no valor de ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(widget.viewModel.comanda?.total ?? 0)}?', style: const TextStyle(color: AppColors.textPrimaryLight)),
+        title: const Text('Encerrar Comanda', style: TextStyle(color: AppColors.textPrimaryLight)),
+        content: const Text('O saldo está zerado. Deseja fechar definitivamente o ciclo dessa comanda?', style: TextStyle(color: AppColors.textPrimaryLight)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -60,9 +75,9 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardBrown),
             onPressed: () {
               Navigator.pop(context);
-              widget.viewModel.pagarComanda();
+              widget.viewModel.encerrarComanda();
             },
-            child: const Text('Pagar', style: TextStyle(color: AppColors.textPrimaryLight)),
+            child: const Text('Encerrar', style: TextStyle(color: AppColors.textPrimaryLight)),
           )
         ],
       ),
@@ -73,9 +88,19 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
   Widget build(BuildContext context) {
     final comanda = widget.viewModel.comanda;
 
+    List<dynamic> linhaDoTempo = [];
+    if (comanda != null) {
+      linhaDoTempo = [...comanda.itens, ...comanda.pagamentos];
+      linhaDoTempo.sort((a, b) {
+        final dateA = (a as dynamic).dataHora as DateTime;
+        final dateB = (b as dynamic).dataHora as DateTime;
+        return dateB.compareTo(dateA); // Do mais recente para o mais antigo
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Comanda: ${widget.coupleId}'),
+        title: Text(widget.coupleId),
         centerTitle: true,
       ),
       body: widget.viewModel.isLoading && comanda == null
@@ -91,32 +116,77 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.all(16),
-                            itemCount: comanda.itens.length,
+                            itemCount: linhaDoTempo.length,
                             itemBuilder: (context, index) {
-                              final item = comanda.itens[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  title: Text(item.descricao, style: const TextStyle(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold)),
-                                  subtitle: Text('${item.quantidade}x ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.valor)}', style: const TextStyle(color: AppColors.backgroundLight)),
-                                  trailing: Text(NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.quantidade * item.valor), style: const TextStyle(color: AppColors.accentCream, fontSize: 16)),
-                                ),
-                              );
+                              final itemTimeline = linhaDoTempo[index];
+                              
+                              if (itemTimeline is ItemModel) {
+                                return _buildCardItem(itemTimeline);
+                              } else if (itemTimeline is PagamentoModel) {
+                                return _buildCardPagamento(itemTimeline);
+                              }
+                              return const SizedBox.shrink();
                             },
                           ),
                         ),
-                        _buildFooter(comanda.total, comanda.status),
+                        _buildFooter(comanda.totalConsumido, comanda.totalPago, comanda.saldoDevedor, comanda.status),
                       ],
                     ),
       floatingActionButton: comanda != null && comanda.status != ComandaStatus.paga
-          ? FloatingActionButton.extended(
-              backgroundColor: AppColors.accentCream,
-              foregroundColor: AppColors.textPrimaryDark,
-              onPressed: _showAddItemDialog,
-              icon: const Icon(Icons.add_shopping_cart, color: AppColors.textPrimaryDark),
-              label: const Text('ADICIONAR ITEM', style: TextStyle(fontWeight: FontWeight.bold)),
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (comanda.saldoDevedor > 0)
+                  FloatingActionButton.extended(
+                    heroTag: 'btn_pagar',
+                    backgroundColor: Colors.greenAccent.shade700,
+                    foregroundColor: AppColors.textPrimaryDark,
+                    onPressed: () => _showAddPagamentoDialog(comanda.saldoDevedor),
+                    icon: const Icon(Icons.attach_money),
+                    label: const Text('RECEBER', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                const SizedBox(height: 16),
+                FloatingActionButton.extended(
+                  heroTag: 'btn_add',
+                  backgroundColor: AppColors.cardPink,
+                  foregroundColor: AppColors.textPrimaryDark,
+                  onPressed: _showAddItemDialog,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: const Text('ADICIONAR ITEM', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
             )
           : null,
+    );
+  }
+
+  Widget _buildCardItem(ItemModel item) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: const CircleAvatar(backgroundColor: AppColors.cardPink, child: Icon(Icons.fastfood, color: Colors.white, size: 20)),
+        title: Text(item.descricao, style: const TextStyle(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold)),
+        subtitle: Text('${item.quantidade}x ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.valor)}', style: const TextStyle(color: AppColors.backgroundLight)),
+        trailing: Text('- ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.quantidade * item.valor)}', style: const TextStyle(color: AppColors.cardPink, fontSize: 16, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildCardPagamento(PagamentoModel pgm) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.green.shade900.withAlpha(50),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Colors.green.shade700, width: 1),
+        borderRadius: BorderRadius.circular(16)
+      ),
+      child: ListTile(
+        leading: CircleAvatar(backgroundColor: Colors.green.shade700, child: const Icon(Icons.payment, color: Colors.white, size: 20)),
+        title: const Text('Abatimento', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+        subtitle: Text('Pago as ${DateFormat('HH:mm').format(pgm.dataHora)}', style: const TextStyle(color: AppColors.backgroundLight)),
+        trailing: Text('+ ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(pgm.valor)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 
@@ -125,11 +195,11 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
     String statusText;
 
     if (status == ComandaStatus.paga) {
-      statusColor = Colors.green;
-      statusText = 'PAGA';
+      statusColor = Colors.greenAccent;
+      statusText = 'ENCERRADA';
     } else {
       statusColor = AppColors.cardPink;
-      statusText = 'ABERTA';
+      statusText = 'EM ABERTO';
     }
 
     return Container(
@@ -145,7 +215,7 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
     );
   }
 
-  Widget _buildFooter(double total, ComandaStatus status) {
+  Widget _buildFooter(double consumido, double pago, double saldo, ComandaStatus status) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -153,32 +223,53 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total da Comanda', style: TextStyle(color: AppColors.backgroundLight, fontSize: 14)),
-                Text(
-                  NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(total),
-                  style: const TextStyle(color: AppColors.textPrimaryLight, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
+                const Text('Total Consumido', style: TextStyle(color: AppColors.backgroundLight)),
+                Text(NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(consumido), style: const TextStyle(color: AppColors.textPrimaryLight)),
               ],
             ),
-            if (status != ComandaStatus.paga)
-              ElevatedButton(
-                onPressed: _checkout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Recebido', style: TextStyle(color: AppColors.backgroundLight)),
+                Text(NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(pago), style: const TextStyle(color: Colors.greenAccent)),
+              ],
+            ),
+            const Divider(color: AppColors.backgroundLight, height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('SALDO DEVENDO', style: TextStyle(color: AppColors.backgroundLight, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(saldo),
+                      style: TextStyle(color: saldo == 0 ? Colors.greenAccent : AppColors.cardPink, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
-                child: const Text('FECHAR CONTA', style: TextStyle(fontWeight: FontWeight.bold)),
-              )
-            else
-              const Icon(Icons.check_circle, color: Colors.green, size: 48),
+                if (status != ComandaStatus.paga)
+                  ElevatedButton(
+                    onPressed: saldo == 0 && consumido > 0 ? _encerrar : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade800,
+                      disabledForegroundColor: Colors.grey.shade400,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                    child: const Text('ENCERRAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                  )
+                else
+                  const Icon(Icons.check_circle, color: Colors.greenAccent, size: 48),
+              ],
+            ),
           ],
         ),
       ),

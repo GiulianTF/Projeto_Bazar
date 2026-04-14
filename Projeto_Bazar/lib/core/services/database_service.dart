@@ -9,7 +9,7 @@ class DatabaseService {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('comandas_bazar.db');
+    _database = await _initDB('comandas_bazar_v2.db');
     return _database!;
   }
 
@@ -54,6 +54,15 @@ CREATE TABLE itens (
   descricao $textType,
   valor $realType,
   quantidade $integerType,
+  dataHora $textType
+)
+''');
+
+    await db.execute('''
+CREATE TABLE pagamentos (
+  id $idType,
+  comandaId $textType,
+  valor $realType,
   dataHora $textType
 )
 ''');

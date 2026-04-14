@@ -44,9 +44,25 @@ class ComandaDetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> pagarComanda() async {
+  Future<void> addPagamento(double valor) async {
     if (_comanda == null) return;
     _isLoading = true;
+    notifyListeners();
+
+    try {
+      _comanda = await _repository.addPagamento(_comanda!, valor);
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> encerrarComanda() async {
+    if (_comanda == null) return;
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {

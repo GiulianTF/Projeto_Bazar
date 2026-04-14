@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 import '../../../../shared/models/comanda_model.dart';
 import '../../../../shared/models/item_model.dart';
+import '../../../../shared/models/pagamento_model.dart';
 import '../../../../shared/models/comanda_status.dart';
 import '../services/comanda_local_service.dart';
 
@@ -19,6 +20,7 @@ class ComandaRepository {
         total: 0.0,
         status: ComandaStatus.aberta,
         itens: [],
+        pagamentos: [],
       );
       await _localService.createComanda(comanda);
     }
@@ -27,7 +29,7 @@ class ComandaRepository {
 
   Future<ComandaModel> addItem(ComandaModel comanda, String descricao, double valor, int quantidade) async {
     if (comanda.status == ComandaStatus.paga) {
-      throw Exception('Não é possível adicionar itens em uma comanda paga.');
+      throw Exception('Não é possível adicionar itens em uma comanda encerrada.');
     }
 
     final item = ItemModel(
@@ -42,21 +44,38 @@ class ComandaRepository {
     await _localService.saveItem(item);
 
     final updatedItens = List<ItemModel>.from(comanda.itens)..insert(0, item);
-    final updatedTotal = comanda.total + (valor * quantidade);
-
-    final updatedComanda = comanda.copyWith(itens: updatedItens, total: updatedTotal);
+    final updatedComanda = comanda.copyWith(itens: updatedItens);
     await _localService.updateComanda(updatedComanda);
 
     return updatedComanda;
   }
 
-  Future<ComandaModel> fecharComanda(ComandaModel comanda) async {
-    final updatedComanda = comanda.copyWith(status: ComandaStatus.fechada);
+  Future<ComandaModel> addPagamento(ComandaModel comanda, double valor) async {
+    if (comanda.status == ComandaStatus.paga) {
+      throw Exception('Comanda já está encerrada.');
+    }
+
+    final pagamento = PagamentoModel(
+      id: _uuid.v4(),
+      comandaId: comanda.id,
+      valor: valor,
+      dataHora: DateTime.now(),
+    );
+
+    await _localService.savePagamento(pagamento);
+
+    final updatedPagamentos = List<PagamentoModel>.from(comanda.pagamentos)..insert(0, pagamento);
+    final updatedComanda = comanda.copyWith(pagamentos: updatedPagamentos);
     await _localService.updateComanda(updatedComanda);
+
     return updatedComanda;
   }
 
   Future<ComandaModel> pagarComanda(ComandaModel comanda) async {
+    if (comanda.saldoDevedor > 0) {
+      throw Exception('Não é possível encerrar uma comanda com saldo devedor.');
+    }
+    
     final updatedComanda = comanda.copyWith(status: ComandaStatus.paga);
     await _localService.updateComanda(updatedComanda);
     return updatedComanda;
