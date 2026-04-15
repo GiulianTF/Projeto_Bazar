@@ -59,30 +59,7 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
     );
   }
 
-  void _encerrar() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text('Encerrar Comanda', style: TextStyle(color: AppColors.textPrimaryLight)),
-        content: const Text('O saldo está zerado. Deseja fechar definitivamente o ciclo dessa comanda?', style: TextStyle(color: AppColors.textPrimaryLight)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.cardPink)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.cardBrown),
-            onPressed: () {
-              Navigator.pop(context);
-              widget.viewModel.encerrarComanda();
-            },
-            child: const Text('Encerrar', style: TextStyle(color: AppColors.textPrimaryLight)),
-          )
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -103,23 +80,26 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
         title: Text(widget.viewModel.coupleName ?? widget.coupleId),
         centerTitle: true,
       ),
-      body: widget.viewModel.isLoading && comanda == null
-          ? const Center(child: CircularProgressIndicator())
-          : widget.viewModel.errorMessage != null
-              ? Center(child: Text(widget.viewModel.errorMessage!, style: const TextStyle(color: AppColors.cardPink)))
-              : comanda == null
-                  ? const Center(child: Text('Nenhuma comanda encontrada.', style: TextStyle(color: AppColors.textPrimaryLight)))
-                  : Column(
-                      children: [
-                        _buildStatusHeader(comanda.status),
-                        if (widget.viewModel.isLoading) const LinearProgressIndicator(color: AppColors.accentCream),
-                        Expanded(
-                          child: ListView.builder(
+      body: widget.viewModel.errorMessage != null
+          ? Center(child: Text(widget.viewModel.errorMessage!, style: const TextStyle(color: AppColors.cardPink)))
+          : Column(
+              children: [
+                if (widget.viewModel.isLoading) const LinearProgressIndicator(color: AppColors.accentCream),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => widget.viewModel.refresh(widget.coupleId),
+                    color: AppColors.accentCream,
+                    backgroundColor: AppColors.backgroundDark,
+                    child: comanda == null
+                        ? widget.viewModel.isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : const Center(child: Text('Nenhuma comanda encontrada.', style: TextStyle(color: AppColors.textPrimaryLight)))
+                        : ListView.builder(
                             padding: const EdgeInsets.all(16),
+                            physics: const AlwaysScrollableScrollPhysics(),
                             itemCount: linhaDoTempo.length,
                             itemBuilder: (context, index) {
                               final itemTimeline = linhaDoTempo[index];
-                              
                               if (itemTimeline is ItemModel) {
                                 return _buildCardItem(itemTimeline);
                               } else if (itemTimeline is PagamentoModel) {
@@ -128,36 +108,17 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
                               return const SizedBox.shrink();
                             },
                           ),
-                        ),
-                        _buildFooter(comanda.totalConsumido, comanda.totalPago, comanda.saldoDevedor, comanda.status),
-                      ],
-                    ),
-      floatingActionButton: comanda != null && comanda.status != ComandaStatus.paga
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (comanda.saldoDevedor > 0)
-                  FloatingActionButton.extended(
-                    heroTag: 'btn_pagar',
-                    backgroundColor: Colors.greenAccent.shade700,
-                    foregroundColor: AppColors.textPrimaryDark,
-                    onPressed: () => _showAddPagamentoDialog(comanda.saldoDevedor),
-                    icon: const Icon(Icons.attach_money),
-                    label: const Text('RECEBER', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                const SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  heroTag: 'btn_add',
-                  backgroundColor: AppColors.cardPink,
-                  foregroundColor: AppColors.textPrimaryDark,
-                  onPressed: _showAddItemDialog,
-                  icon: const Icon(Icons.add_shopping_cart),
-                  label: const Text('ADICIONAR ITEM', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                _buildFooter(
+                  comanda?.totalConsumido ?? 0.0,
+                  comanda?.totalPago ?? 0.0,
+                  comanda?.saldoDevedor ?? 0.0,
+                  comanda?.status ?? ComandaStatus.aberta,
                 ),
               ],
-            )
-          : null,
+            ),
+      floatingActionButton: null,
     );
   }
 
@@ -220,30 +181,7 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
     );
   }
 
-  Widget _buildStatusHeader(ComandaStatus status) {
-    Color statusColor;
-    String statusText;
 
-    if (status == ComandaStatus.paga) {
-      statusColor = Colors.greenAccent;
-      statusText = 'ENCERRADA';
-    } else {
-      statusColor = AppColors.cardPink;
-      statusText = 'EM ABERTO';
-    }
-
-    return Container(
-      width: double.infinity,
-      color: statusColor.withAlpha(51),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Center(
-        child: Text(
-          'STATUS: $statusText',
-          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, letterSpacing: 2),
-        ),
-      ),
-    );
-  }
 
   Widget _buildFooter(double consumido, double pago, double saldo, ComandaStatus status) {
     return Container(
@@ -277,27 +215,51 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('SALDO DEVENDO', style: TextStyle(color: AppColors.backgroundLight, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const Text('SALDO EM ABERTO', style: TextStyle(color: AppColors.backgroundLight, fontSize: 12, fontWeight: FontWeight.bold)),
                     Text(
-                      NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(saldo),
-                      style: TextStyle(color: saldo == 0 ? Colors.greenAccent : AppColors.cardPink, fontSize: 24, fontWeight: FontWeight.bold),
+                      NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(saldo.abs() < 0.001 ? 0.0 : saldo),
+                      style: TextStyle(
+                        color: saldo.abs() < 0.001 ? Colors.greenAccent : AppColors.cardPink,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                if (status != ComandaStatus.paga)
-                  ElevatedButton(
-                    onPressed: saldo == 0 && consumido > 0 ? _encerrar : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.grey.shade800,
-                      disabledForegroundColor: Colors.grey.shade400,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                if (saldo > 0.001) ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showAddPagamentoDialog(saldo),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent.shade700,
+                        foregroundColor: AppColors.textPrimaryDark,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.attach_money),
+                      label: const Text('RECEBER', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('ENCERRAR', style: TextStyle(fontWeight: FontWeight.bold)),
-                  )
-                else
-                  const Icon(Icons.check_circle, color: Colors.greenAccent, size: 48),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showAddItemDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cardPink,
+                      foregroundColor: AppColors.textPrimaryDark,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: const Text('ITEM', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
               ],
             ),
           ],

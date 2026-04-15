@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:rxdart/rxdart.dart';
 import '../../../../shared/models/comanda_model.dart';
 import '../../../../shared/models/item_model.dart';
 import '../../../../shared/models/pagamento_model.dart';
@@ -25,6 +26,25 @@ class ComandaRepository {
       await _remoteService.createComanda(comanda);
     }
     return comanda;
+  }
+
+  Stream<ComandaModel?> obterComandaAtivaStream(String coupleId) {
+    // 1. Ouvir a comanda ativa
+    return _remoteService.getComandaStream(coupleId).switchMap((comanda) {
+      if (comanda == null) return Stream.value(null);
+
+      // 2. Se a comanda existe, ouvir seus itens e pagamentos em tempo real
+      return Rx.combineLatest2(
+        _remoteService.getItensStream(comanda.id),
+        _remoteService.getPagamentosStream(comanda.id),
+        (itens, pagamentos) {
+          return comanda.copyWith(
+            itens: itens,
+            pagamentos: pagamentos,
+          );
+        },
+      );
+    });
   }
 
   Future<ComandaModel> addItem(ComandaModel comanda, String descricao, double valor, int quantidade) async {
@@ -68,16 +88,6 @@ class ComandaRepository {
     final updatedComanda = comanda.copyWith(pagamentos: updatedPagamentos);
     await _remoteService.updateComanda(updatedComanda);
 
-    return updatedComanda;
-  }
-
-  Future<ComandaModel> pagarComanda(ComandaModel comanda) async {
-    if (comanda.saldoDevedor > 0) {
-      throw Exception('Não é possível encerrar uma comanda com saldo devedor.');
-    }
-    
-    final updatedComanda = comanda.copyWith(status: ComandaStatus.paga);
-    await _remoteService.updateComanda(updatedComanda);
     return updatedComanda;
   }
 }

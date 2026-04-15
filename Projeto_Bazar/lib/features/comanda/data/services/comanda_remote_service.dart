@@ -29,6 +29,42 @@ class ComandaRemoteService {
     return null;
   }
 
+  Stream<ComandaModel?> getComandaStream(String coupleId) {
+    return _firestore
+        .collection('comandas')
+        .where('coupleId', isEqualTo: coupleId)
+        .where('status', isNotEqualTo: ComandaStatus.paga.toMap())
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        final comandaMap = doc.data();
+        comandaMap['id'] = doc.id;
+        return ComandaModel.fromMap(comandaMap);
+      }
+      return null;
+    });
+  }
+
+  Stream<List<ItemModel>> getItensStream(String comandaId) {
+    return _firestore
+        .collection('itens')
+        .where('comandaId', isEqualTo: comandaId)
+        .orderBy('dataHora', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => ItemModel.fromMap(doc.data())).toList());
+  }
+
+  Stream<List<PagamentoModel>> getPagamentosStream(String comandaId) {
+    return _firestore
+        .collection('pagamentos')
+        .where('comandaId', isEqualTo: comandaId)
+        .orderBy('dataHora', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => PagamentoModel.fromMap(doc.data())).toList());
+  }
+
   Future<List<ItemModel>> getItensPorComanda(String comandaId) async {
     final snapshot = await _firestore
         .collection('itens')
@@ -63,5 +99,33 @@ class ComandaRemoteService {
   
   Future<void> savePagamento(PagamentoModel pagamento) async {
     await _firestore.collection('pagamentos').doc(pagamento.id).set(pagamento.toMap());
+  }
+
+  Future<void> deleteAllDataByCasal(String coupleId) async {
+    final batch = _firestore.batch();
+
+    // 1. Buscar todas as comandas do casal
+    final comandaSnap = await _firestore.collection('comandas').where('coupleId', isEqualTo: coupleId).get();
+
+    for (var comandaDoc in comandaSnap.docs) {
+      final comandaId = comandaDoc.id;
+
+      // 2. Buscar e deletar itens da comanda
+      final itemSnap = await _firestore.collection('itens').where('comandaId', isEqualTo: comandaId).get();
+      for (var itemDoc in itemSnap.docs) {
+        batch.delete(itemDoc.reference);
+      }
+
+      // 3. Buscar e deletar pagamentos da comanda
+      final pagamentoSnap = await _firestore.collection('pagamentos').where('comandaId', isEqualTo: comandaId).get();
+      for (var pagamentoDoc in pagamentoSnap.docs) {
+        batch.delete(pagamentoDoc.reference);
+      }
+
+      // 4. Deletar a comanda
+      batch.delete(comandaDoc.reference);
+    }
+
+    await batch.commit();
   }
 }

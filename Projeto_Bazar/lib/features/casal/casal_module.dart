@@ -9,9 +9,9 @@ import 'presentation/views/casal_management_view.dart';
 class CasalModule {
   static Widget build() {
     final service = CasalRemoteService();
-    final repository = CasalRepository(service);
-    
     final comandaService = ComandaRemoteService();
+    
+    final repository = CasalRepository(service, comandaService);
     final comandaRepository = ComandaRepository(comandaService);
     
     final viewModel = CasalManagementViewModel(repository, comandaRepository);

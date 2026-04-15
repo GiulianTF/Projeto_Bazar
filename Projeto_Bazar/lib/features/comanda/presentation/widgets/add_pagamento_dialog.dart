@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:flutter/services.dart';
+import '../../../../shared/utils/currency_input_formatter.dart';
+import 'package:intl/intl.dart';
 
 class AddPagamentoDialog extends StatefulWidget {
   final double saldoDevedor;
@@ -18,18 +20,43 @@ class _AddPagamentoDialogState extends State<AddPagamentoDialog> {
   @override
   void initState() {
     super.initState();
-    // Inicia com o valor do saldo caso ele queira quitar tudo de vez
-    _valorController = TextEditingController(text: widget.saldoDevedor.toStringAsFixed(2).replaceAll('.', ','));
+    // Inicia com o valor do saldo formatado para a máscara (ex: 12.34 -> "12,34")
+    final formatter = NumberFormat.simpleCurrency(locale: 'pt_BR', name: '');
+    String initialValue = formatter.format(widget.saldoDevedor).trim();
+    _valorController = TextEditingController(text: initialValue);
   }
 
   void _submit() {
-    final valorStr = _valorController.text.trim().replaceAll(',', '.');
-    final valor = double.tryParse(valorStr);
+    // Remove separadores de milhar e converte vírgula decimal em ponto para parsear
+    String valorLimpo = _valorController.text.replaceAll('.', '').replaceAll(',', '.');
+    final valor = double.tryParse(valorLimpo);
 
-    if (valor != null && valor > 0) {
-      widget.onAdd(valor);
-      Navigator.pop(context);
+    if (valor == null || valor <= 0) return;
+
+    if (valor > widget.saldoDevedor + 0.001) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.backgroundDark,
+          title: const Text('Valor Inválido', style: TextStyle(color: AppColors.cardPink)),
+          content: Text(
+            'Não é possível receber mais do que o saldo em aberto.\n\n'
+            'Saldo atual: R\$ ${widget.saldoDevedor.toStringAsFixed(2).replaceAll('.', ',')}',
+            style: const TextStyle(color: AppColors.textPrimaryLight),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ENTENDIDO', style: TextStyle(color: AppColors.cardPink)),
+            ),
+          ],
+        ),
+      );
+      return;
     }
+
+    widget.onAdd(valor);
+    Navigator.pop(context);
   }
 
   @override
@@ -54,7 +81,8 @@ class _AddPagamentoDialogState extends State<AddPagamentoDialog> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textPrimaryDark),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+                FilteringTextInputFormatter.digitsOnly,
+                CurrencyInputFormatter(),
               ],
               decoration: InputDecoration(
                 filled: true,

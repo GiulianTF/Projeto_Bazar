@@ -1,12 +1,14 @@
 import 'package:uuid/uuid.dart';
 import '../../../../shared/models/casal_model.dart';
 import '../services/casal_remote_service.dart';
+import '../../../comanda/data/services/comanda_remote_service.dart';
 
 class CasalRepository {
   final CasalRemoteService _remoteService;
+  final ComandaRemoteService _comandaRemoteService;
   final _uuid = const Uuid();
 
-  CasalRepository(this._remoteService);
+  CasalRepository(this._remoteService, this._comandaRemoteService);
 
   Future<List<CasalModel>> getCasais() async {
     return await _remoteService.getCasais();
@@ -29,6 +31,9 @@ class CasalRepository {
   }
 
   Future<void> deleteCasal(String id) async {
+    // 1. Deletar todos os dados associados (Comandas, Itens, Pagamentos)
+    await _comandaRemoteService.deleteAllDataByCasal(id);
+    // 2. Deletar o casal
     await _remoteService.deleteCasal(id);
   }
 }

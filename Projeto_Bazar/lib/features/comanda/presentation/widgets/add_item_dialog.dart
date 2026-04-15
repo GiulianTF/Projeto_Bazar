@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:flutter/services.dart';
+import '../../../../shared/utils/currency_input_formatter.dart';
 
 class AddItemDialog extends StatefulWidget {
   final Function(String descricao, double valor, int quantidade) onAdd;
@@ -18,8 +19,9 @@ class _AddItemDialogState extends State<AddItemDialog> {
 
   void _submit() {
     final descricao = _descricaoController.text.trim();
-    final valorStr = _valorController.text.trim().replaceAll(',', '.');
-    final valor = double.tryParse(valorStr);
+    // Remove separadores de milhar e converte vírgula decimal em ponto
+    String valorLimpo = _valorController.text.replaceAll('.', '').replaceAll(',', '.');
+    final valor = double.tryParse(valorLimpo);
 
     if (descricao.isNotEmpty && valor != null && valor >= 0) {
       widget.onAdd(descricao, valor, _quantidade);
@@ -62,7 +64,8 @@ class _AddItemDialogState extends State<AddItemDialog> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textPrimaryDark),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+                FilteringTextInputFormatter.digitsOnly,
+                CurrencyInputFormatter(),
               ],
               decoration: InputDecoration(
                 filled: true,

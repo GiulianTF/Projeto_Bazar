@@ -21,8 +21,9 @@ class _ScannerViewState extends State<ScannerView> {
   final ScannerViewModel _viewModel = ScannerViewModel();
 
   void _navigateToComanda(String coupleId) {
-    final comandaRepo = ComandaRepository(ComandaRemoteService());
-    final casalRepo = CasalRepository(CasalRemoteService());
+    final comandaService = ComandaRemoteService();
+    final comandaRepo = ComandaRepository(comandaService);
+    final casalRepo = CasalRepository(CasalRemoteService(), comandaService);
     final comandaViewModel = ComandaDetailViewModel(comandaRepo, casalRepo);
 
     Navigator.push(
