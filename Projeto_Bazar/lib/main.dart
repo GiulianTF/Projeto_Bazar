@@ -1,15 +1,12 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'features/scanner/presentation/views/scanner_view.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/constants/app_colors.dart';
 
-void main() {
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
   runApp(const ProjetoBazarApp());
 }
 

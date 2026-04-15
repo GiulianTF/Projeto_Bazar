@@ -3,16 +3,16 @@ import '../../../../shared/models/comanda_model.dart';
 import '../../../../shared/models/item_model.dart';
 import '../../../../shared/models/pagamento_model.dart';
 import '../../../../shared/models/comanda_status.dart';
-import '../services/comanda_local_service.dart';
+import '../services/comanda_remote_service.dart';
 
 class ComandaRepository {
-  final ComandaLocalService _localService;
+  final ComandaRemoteService _remoteService;
   final _uuid = const Uuid();
 
-  ComandaRepository(this._localService);
+  ComandaRepository(this._remoteService);
 
   Future<ComandaModel> getOrCreateComanda(String coupleId) async {
-    var comanda = await _localService.getComandaAtivaPorCasal(coupleId);
+    var comanda = await _remoteService.getComandaAtivaPorCasal(coupleId);
     if (comanda == null) {
       comanda = ComandaModel(
         id: _uuid.v4(),
@@ -22,7 +22,7 @@ class ComandaRepository {
         itens: [],
         pagamentos: [],
       );
-      await _localService.createComanda(comanda);
+      await _remoteService.createComanda(comanda);
     }
     return comanda;
   }
@@ -41,11 +41,11 @@ class ComandaRepository {
       dataHora: DateTime.now(),
     );
 
-    await _localService.saveItem(item);
+    await _remoteService.saveItem(item);
 
     final updatedItens = List<ItemModel>.from(comanda.itens)..insert(0, item);
     final updatedComanda = comanda.copyWith(itens: updatedItens);
-    await _localService.updateComanda(updatedComanda);
+    await _remoteService.updateComanda(updatedComanda);
 
     return updatedComanda;
   }
@@ -62,11 +62,11 @@ class ComandaRepository {
       dataHora: DateTime.now(),
     );
 
-    await _localService.savePagamento(pagamento);
+    await _remoteService.savePagamento(pagamento);
 
     final updatedPagamentos = List<PagamentoModel>.from(comanda.pagamentos)..insert(0, pagamento);
     final updatedComanda = comanda.copyWith(pagamentos: updatedPagamentos);
-    await _localService.updateComanda(updatedComanda);
+    await _remoteService.updateComanda(updatedComanda);
 
     return updatedComanda;
   }
@@ -77,7 +77,7 @@ class ComandaRepository {
     }
     
     final updatedComanda = comanda.copyWith(status: ComandaStatus.paga);
-    await _localService.updateComanda(updatedComanda);
+    await _remoteService.updateComanda(updatedComanda);
     return updatedComanda;
   }
 }

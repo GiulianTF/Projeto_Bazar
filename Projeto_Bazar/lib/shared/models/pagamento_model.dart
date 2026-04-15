@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class PagamentoModel {
   final String id;
   final String comandaId;
@@ -16,7 +18,7 @@ class PagamentoModel {
       'id': id,
       'comandaId': comandaId,
       'valor': valor,
-      'dataHora': dataHora.toIso8601String(),
+      'dataHora': Timestamp.fromDate(dataHora),
     };
   }
 
@@ -25,7 +27,9 @@ class PagamentoModel {
       id: map['id'],
       comandaId: map['comandaId'],
       valor: map['valor'],
-      dataHora: DateTime.parse(map['dataHora']),
+      dataHora: map['dataHora'] is Timestamp 
+          ? (map['dataHora'] as Timestamp).toDate() 
+          : DateTime.parse(map['dataHora'].toString()),
     );
   }
 }
