@@ -164,11 +164,26 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
   Widget _buildCardItem(ItemModel item) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(backgroundColor: AppColors.cardPink, child: Icon(Icons.fastfood, color: Colors.white, size: 20)),
-        title: Text(item.descricao, style: const TextStyle(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold)),
-        subtitle: Text('${item.quantidade}x ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.valor)}', style: const TextStyle(color: AppColors.backgroundLight)),
-        trailing: Text('- ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.quantidade * item.valor)}', style: const TextStyle(color: AppColors.cardPink, fontSize: 16, fontWeight: FontWeight.bold)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: const CircleAvatar(backgroundColor: AppColors.cardPink, child: Icon(Icons.shopping_bag, color: Colors.white, size: 20)),
+          title: Text(item.descricao, style: const TextStyle(color: AppColors.textPrimaryLight, fontWeight: FontWeight.bold)),
+          subtitle: Text('${item.quantidade}x ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.valor)}', style: const TextStyle(color: AppColors.backgroundLight)),
+          trailing: Text('- ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(item.quantidade * item.valor)}', style: const TextStyle(color: AppColors.cardPink, fontSize: 16, fontWeight: FontWeight.bold)),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Data e Hora:', style: TextStyle(color: AppColors.backgroundLight)),
+                  Text(DateFormat('dd/MM/yyyy HH:mm:ss').format(item.dataHora), style: const TextStyle(color: AppColors.textPrimaryLight)),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -181,11 +196,26 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
         side: BorderSide(color: Colors.green.shade700, width: 1),
         borderRadius: BorderRadius.circular(16)
       ),
-      child: ListTile(
-        leading: CircleAvatar(backgroundColor: Colors.green.shade700, child: const Icon(Icons.payment, color: Colors.white, size: 20)),
-        title: const Text('Abatimento', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-        subtitle: Text('Pago as ${DateFormat('HH:mm').format(pgm.dataHora)}', style: const TextStyle(color: AppColors.backgroundLight)),
-        trailing: Text('+ ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(pgm.valor)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: CircleAvatar(backgroundColor: Colors.green.shade700, child: const Icon(Icons.payment, color: Colors.white, size: 20)),
+          title: const Text('Abatimento', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+          subtitle: const Text('Pagamento recebido', style: TextStyle(color: AppColors.backgroundLight)),
+          trailing: Text('+ ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(pgm.valor)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Data e Hora:', style: TextStyle(color: AppColors.backgroundLight)),
+                  Text(DateFormat('dd/MM/yyyy HH:mm:ss').format(pgm.dataHora), style: const TextStyle(color: Colors.greenAccent)),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
