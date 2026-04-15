@@ -12,6 +12,10 @@ class CasalRepository {
     return await _remoteService.getCasais();
   }
 
+  Future<CasalModel?> getCasalById(String id) async {
+    return await _remoteService.getCasalById(id);
+  }
+
   Future<CasalModel> createCasal(String nome) async {
     final id = _uuid.v4();
     final casal = CasalModel(

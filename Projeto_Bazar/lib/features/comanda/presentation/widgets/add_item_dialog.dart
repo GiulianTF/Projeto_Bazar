@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:flutter/services.dart';
 
 class AddItemDialog extends StatefulWidget {
   final Function(String descricao, double valor, int quantidade) onAdd;
@@ -49,8 +50,9 @@ class _AddItemDialogState extends State<AddItemDialog> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.backgroundLight,
-                labelText: 'Produto (Ex: Coxinha)',
-                labelStyle: const TextStyle(color: AppColors.cardBrown),
+                hintText: 'Produto (Ex: Coxinha)',
+                hintStyle: const TextStyle(color: AppColors.cardBrown),
+                floatingLabelBehavior: FloatingLabelBehavior.never,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -59,11 +61,15 @@ class _AddItemDialogState extends State<AddItemDialog> {
               controller: _valorController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textPrimaryDark),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+              ],
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.backgroundLight,
-                labelText: 'Valor unitário (R\$)',
-                labelStyle: const TextStyle(color: AppColors.cardBrown),
+                hintText: 'Valor unitário (R\$)',
+                hintStyle: const TextStyle(color: AppColors.cardBrown),
+                floatingLabelBehavior: FloatingLabelBehavior.never,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),

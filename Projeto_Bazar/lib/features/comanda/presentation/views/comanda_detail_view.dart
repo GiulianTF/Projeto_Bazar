@@ -100,7 +100,7 @@ class _ComandaDetailViewState extends State<ComandaDetailView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.coupleId),
+        title: Text(widget.viewModel.coupleName ?? widget.coupleId),
         centerTitle: true,
       ),
       body: widget.viewModel.isLoading && comanda == null

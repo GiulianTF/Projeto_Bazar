@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:flutter/services.dart';
 
 class AddPagamentoDialog extends StatefulWidget {
   final double saldoDevedor;
@@ -52,11 +53,15 @@ class _AddPagamentoDialogState extends State<AddPagamentoDialog> {
               controller: _valorController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textPrimaryDark),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d{0,2}')),
+              ],
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.backgroundLight,
-                labelText: 'Valor recebido (R\$)',
-                labelStyle: const TextStyle(color: AppColors.cardBrown),
+                hintText: 'Valor recebido (R\$)',
+                hintStyle: const TextStyle(color: AppColors.cardBrown),
+                floatingLabelBehavior: FloatingLabelBehavior.never,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),

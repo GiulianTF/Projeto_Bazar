@@ -13,6 +13,14 @@ class CasalRemoteService {
     return snapshot.docs.map((doc) => CasalModel.fromMap(doc.data())).toList();
   }
 
+  Future<CasalModel?> getCasalById(String id) async {
+    final doc = await _firestore.collection('casais').doc(id).get();
+    if (doc.exists) {
+      return CasalModel.fromMap(doc.data()!);
+    }
+    return null;
+  }
+
   Future<void> createCasal(CasalModel casal) async {
     await _firestore.collection('casais').doc(casal.id).set(casal.toMap());
   }

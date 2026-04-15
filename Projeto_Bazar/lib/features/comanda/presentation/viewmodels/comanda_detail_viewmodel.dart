@@ -1,16 +1,21 @@
 import 'package:flutter/foundation.dart';
 import '../../../../shared/models/comanda_model.dart';
 import '../../data/repositories/comanda_repository.dart';
+import '../../../casal/data/repositories/casal_repository.dart';
 
 class ComandaDetailViewModel extends ChangeNotifier {
   final ComandaRepository _repository;
+  final CasalRepository _casalRepository;
+  
   ComandaModel? _comanda;
+  String? _coupleName;
   bool _isLoading = false;
   String? _errorMessage;
 
-  ComandaDetailViewModel(this._repository);
+  ComandaDetailViewModel(this._repository, this._casalRepository);
 
   ComandaModel? get comanda => _comanda;
+  String? get coupleName => _coupleName;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -20,7 +25,17 @@ class ComandaDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _comanda = await _repository.getOrCreateComanda(coupleId);
+      // Carrega a comanda e o nome do casal em paralelo
+      final results = await Future.wait([
+        _repository.getOrCreateComanda(coupleId),
+        _casalRepository.getCasalById(coupleId),
+      ]);
+
+      _comanda = results[0] as ComandaModel;
+      final casal = results[1] as dynamic; // Pode ser CasalModel ou null
+      if (casal != null) {
+        _coupleName = casal.nome;
+      }
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

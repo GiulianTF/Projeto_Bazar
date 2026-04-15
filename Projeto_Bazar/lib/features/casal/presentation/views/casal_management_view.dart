@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import 'package:intl/intl.dart';
 import '../viewmodels/casal_management_viewmodel.dart';
 import '../widgets/qr_viewer_dialog.dart';
 
@@ -125,7 +126,14 @@ class _CasalManagementViewState extends State<CasalManagementView> {
               casal.nome ?? 'Sem nome',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            subtitle: Text('ID: ${casal.qrCode}', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+            subtitle: Text(
+              'Saldo: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(widget.viewModel.getSaldo(casal.id))}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: widget.viewModel.getSaldo(casal.id) > 0 ? AppColors.cardPink : Colors.greenAccent,
+              ),
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
