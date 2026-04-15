@@ -12,11 +12,7 @@ class QrViewerDialog extends StatelessWidget {
   final String title;
   final ScreenshotController screenshotController = ScreenshotController();
 
-  QrViewerDialog({
-    super.key,
-    required this.qrData,
-    required this.title,
-  });
+  QrViewerDialog({super.key, required this.qrData, required this.title});
 
   Future<void> _shareQrCode() async {
     try {
@@ -26,9 +22,11 @@ class QrViewerDialog extends StatelessWidget {
         final imagePath = await File('${directory.path}/qr_code.png').create();
         await imagePath.writeAsBytes(imageBytes);
 
-        await Share.shareXFiles(
-          [XFile(imagePath.path)],
-          text: 'QR Code da comanda: $title',
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(imagePath.path)],
+            text: 'QR Code da comanda: $title',
+          ),
         );
       }
     } catch (e) {
@@ -81,7 +79,10 @@ class QrViewerDialog extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('FECHAR', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'FECHAR',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton.icon(
                   onPressed: _shareQrCode,
