@@ -48,6 +48,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
             const SizedBox(height: 24),
             TextField(
               controller: _descricaoController,
+              textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(color: AppColors.textPrimaryDark),
               decoration: InputDecoration(
                 filled: true,

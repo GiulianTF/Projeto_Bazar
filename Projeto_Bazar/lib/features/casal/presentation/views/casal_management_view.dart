@@ -43,6 +43,7 @@ class _CasalManagementViewState extends State<CasalManagementView> {
         content: TextField(
           controller: _nameController,
           autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
           style: const TextStyle(color: AppColors.textPrimaryLight),
           decoration: const InputDecoration(
             hintText: 'Nome do Casal/Comanda',

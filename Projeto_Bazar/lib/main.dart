@@ -16,7 +16,7 @@ class ProjetoBazarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Projeto Bazar',
+      title: 'Bazar',
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.backgroundDark,
         primaryColor: AppColors.backgroundDark,
